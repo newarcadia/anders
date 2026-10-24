@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose an Anders workflow or format improvement.
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Model import and export
+        - Materials and baking
+        - Textures
+        - Animation
+        - HW1 to HW2 porting
+        - Blender interface
+        - Development and testing
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the current workflow and the step that is difficult or missing.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Proposed behavior
+      description: Give a concrete before/after example and what would count as complete.
+    validations:
+      required: true
+  - type: textarea
+    id: contribution
+    attributes:
+      label: How you can help
+      description: Implementation, reproduction, a synthetic fixture, documentation or testing. This is optional.

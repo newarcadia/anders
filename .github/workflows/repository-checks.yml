@@ -1,0 +1,98 @@
+name: Repository checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+    inputs:
+      commit:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  PIP_NO_CACHE_DIR: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+concurrency:
+  group: repository-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout root repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Check changed lines
+        env:
+          BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ -n "$BASE_REVISION" && "$BASE_REVISION" != "0000000000000000000000000000000000000000" ]]; then
+            git diff --check "$BASE_REVISION" HEAD
+          else
+            git show --format= --check HEAD
+          fi
+      - name: Check Python syntax
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          paths = subprocess.check_output(['git', 'ls-files', '-z', '*.py']).decode().split('\0')
+          for path in filter(None, paths):
+              compile(Path(path).read_bytes(), path, 'exec')
+          PY
+      - name: Check shell syntax
+        run: |
+          while IFS= read -r -d '' path; do
+            bash -n "$path"
+          done < <(git ls-files -z '*.sh')
+      - name: Check module boundaries and Python names
+        run: |
+          python3 -m venv "$RUNNER_TEMP/anders-checks"
+          "$RUNNER_TEMP/anders-checks/bin/python" -m pip install --no-compile pyflakes==4.0.3
+          "$RUNNER_TEMP/anders-checks/bin/python" scripts/check.py
+      - name: Build extension archive
+        run: python3 scripts/package.py --output "$RUNNER_TEMP/anders.zip"
+
+  blender:
+    name: blender (${{ matrix.version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '4.2.7'
+            sha256: 6e5eed5b753d0fde5cf42d08972ccd4b7c16b6b888cb5e5c734fdb7457a26ff1
+          - version: '5.2.2'
+            sha256: 84098912789dc450e95697c4184fb8a90acbe5111c2ba4aede3fecb57806a168
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.commit || github.sha }}
+          persist-credentials: false
+      - name: Download Blender
+        env:
+          BLENDER_VERSION: ${{ matrix.version }}
+          BLENDER_SHA256: ${{ matrix.sha256 }}
+        run: |
+          series="${BLENDER_VERSION%.*}"
+          curl --fail --location --retry 3 "https://download.blender.org/release/Blender${series}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" --output "$RUNNER_TEMP/blender.tar.xz"
+          echo "$BLENDER_SHA256  $RUNNER_TEMP/blender.tar.xz" | sha256sum --check
+          mkdir "$RUNNER_TEMP/blender"
+          tar -xf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP/blender" --strip-components=1
+      - name: Validate extension archive
+        run: |
+          python3 scripts/package.py --output "$RUNNER_TEMP/anders.zip"
+          "$RUNNER_TEMP/blender/blender" --command extension validate "$RUNNER_TEMP/anders.zip"

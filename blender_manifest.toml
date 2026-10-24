@@ -1,0 +1,26 @@
+schema_version = "1.0.0"
+
+id = "anders_ugx_tools"
+version = "2026.10.2301"
+name = "Anders: Halo Wars Tools"
+tagline = "Convert FBX and edit Halo Wars models and animations"
+maintainer = "New Arcadia Dev Team (dev.kuru)"
+type = "add-on"
+
+website = "https://github.com/newarcadia/anders"
+tags = ["Import-Export"]
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+copyright = ["2026 New Arcadia and the respective contributors"]
+
+[permissions]
+files = "Import and export user-selected Halo Wars asset files"
+
+[build]
+paths = [
+  "LICENSE",
+  "NOTICE",
+  "__init__.py",
+  "anders.py",
+  "src/",
+]

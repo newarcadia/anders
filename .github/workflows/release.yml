@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anders-release
+  cancel-in-progress: false
+
+env:
+  PIP_NO_CACHE_DIR: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  snapshot:
+    if: github.repository == 'newarcadia/anders' && github.ref == 'refs/heads/main' && github.actor == 'devdotkuru' && github.triggering_actor == 'devdotkuru'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      skip: ${{ steps.reserve.outputs.skip }}
+      source: ${{ steps.reserve.outputs.source }}
+      commit: ${{ steps.reserve.outputs.commit }}
+      version: ${{ steps.reserve.outputs.version }}
+    steps:
+      - name: Checkout captured main snapshot
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reserve version and release-only commit
+        id: reserve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish.py --repository "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" --allocate
+
+  validate:
+    needs: snapshot
+    if: needs.snapshot.outputs.skip == 'false'
+    uses: ./.github/workflows/repository-checks.yml
+    with:
+      commit: ${{ needs.snapshot.outputs.commit }}
+    permissions:
+      contents: read
+
+  publish:
+    needs: [snapshot, validate]
+    if: needs.snapshot.outputs.skip == 'false'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout checked release commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.snapshot.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Rebuild and publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_COMMIT: ${{ needs.snapshot.outputs.commit }}
+        run: python3 scripts/publish.py --repository "$GITHUB_REPOSITORY" --commit "$RELEASE_COMMIT" --output "$RUNNER_TEMP/anders-release"

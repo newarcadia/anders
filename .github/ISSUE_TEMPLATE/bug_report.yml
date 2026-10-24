@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a reproducible Anders import, export or Blender workflow problem.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Anders version or commit
+      description: Use the version shown in Blender extension preferences, or the commit for a source checkout.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Blender version and operating system
+      placeholder: Blender 4.2.7, Windows 11
+    validations:
+      required: true
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game or workflow
+      options:
+        - Halo Wars 1 / Definitive Edition
+        - Halo Wars 2
+        - HW1 to HW2 port
+        - Custom asset or other workflow
+    validations:
+      required: true
+  - type: input
+    id: asset
+    attributes:
+      label: Asset name and source
+      description: Give the filename and whether it is retail, modified, or custom. Do not upload game files or a local dump.
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Start with import or scene opening, list edits, and include relevant export options. A synthetic sample is welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: State whether the failure occurs in Blender, on reimport, or in game. Include screenshots for visual failures.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error text or traceback
+      description: Paste the complete relevant error. Remove credentials and private paths before posting.
+      render: text
+  - type: textarea
+    id: comparison
+    attributes:
+      label: Comparison or workaround
+      description: Does an unchanged import/export work? Does another Anders or Blender version behave differently?

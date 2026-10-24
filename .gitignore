@@ -1,0 +1,11 @@
+.vs/
+bin/
+obj/
+dist/
+__pycache__/
+*.py[cod]
+out/
+.venv/
+*.egg-info/
+tests/
+scripts/test.py

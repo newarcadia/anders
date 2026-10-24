@@ -1,0 +1,17 @@
+[project]
+name = "anders-development"
+version = "0.0.0"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+dev = ["pyflakes==4.0.3"]
+
+[tool.anders]
+blender-versions = ["4.2", "5.2"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []
