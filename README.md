@@ -1,6 +1,6 @@
-# Anders
+![Anders: Halo Wars Tools for Blender](assets/branding/anders-social.png)
 
-Halo Wars tools for Blender, developed by **New Arcadia**.
+**Anders** is New Arcadia’s Halo Wars addon for Blender.
 
 Import, edit and export models, materials, textures, animations, visual definitions and damage data for Halo Wars: Definitive Edition and Halo Wars 2. Requires Blender 4.2 or newer. Game files are not included.
 
