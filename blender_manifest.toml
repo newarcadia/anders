@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "anders_ugx_tools"
-version = "2026.10.2301"
+version = "2026.10.2401"
 name = "Anders: Halo Wars Tools"
 tagline = "Convert FBX and edit Halo Wars models and animations"
 maintainer = "New Arcadia Dev Team (dev.kuru)"
