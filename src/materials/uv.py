@@ -4,8 +4,7 @@ import bpy
 from bpy.app.handlers import persistent
 import json
 from ..errors import UgxError
-from .bindings import ugx_image_node_from_socket, ugx_material_node_bindings
-from ..textures.paths import disabled_texture_path
+from .bindings import ugx_material_node_bindings
 from .context import material_output_node, ugx_material_cache_version, v4_shader_node_for_material
 from .data import v4_material_slot_flags, v4_material_uvw_values
 from .mapping import hw1_sampler_extension, hw1_texture_mapping
@@ -189,47 +188,19 @@ def add_ugx_uv_animation(mat):
     return next(iter(nodes.values()))
 
 
-def refresh_hw1_diffuse_alpha(mat, slots):
-    shader = v4_shader_node_for_material(mat, 4)
-    if shader is None:
-        return
-    mask, diffuse = shader.inputs.get('Player_color (xf)'), shader.inputs.get('Diffuse (df)')
-    if mask is None or diffuse is None:
-        return
-    current = mask.links[0].from_node if mask.is_linked else None
-    fallback = current if current is not None and current.get('hwek_hw1_diffuse_alpha_fallback') else None
-    if current is not None and fallback is None:
-        return
-    declared = any(slot.get('usage') == 'xform' and not disabled_texture_path(str(slot.get('path', ''))) for slot in slots)
-    if declared:
-        return
-    try:
-        texture = ugx_image_node_from_socket(diffuse, mat, True)
-    except UgxError:
-        return
-    if texture is None:
-        if fallback is not None:
-            mat.node_tree.nodes.remove(fallback)
-        return
-    if fallback is None:
-        fallback = mat.node_tree.nodes.new('ShaderNodeCombineColor')
-        fallback.name = 'HW1 Diffuse Alpha Team Mask'
-        fallback['hwek_hw1_diffuse_alpha_fallback'] = True
-    for name in ('Red', 'Green', 'Blue'):
-        target = fallback.inputs[name]
-        if not target.is_linked or target.links[0].from_socket != texture.outputs['Alpha']:
-            mat.node_tree.links.new(texture.outputs['Alpha'], target)
-    if not mask.is_linked:
-        mat.node_tree.links.new(fallback.outputs['Color'], mask)
-
-
 def refresh_hw1_texture_sampling(mat):
     """Update image samplers from native flags and per-map animation."""
     if mat.node_tree is None or ugx_material_cache_version(mat) != 4:
         return
     slots = json.loads(mat.get('hwek_ugx_texture_slots', '[]'))
-    refresh_hw1_diffuse_alpha(mat, slots)
-    for texture in mat.node_tree.nodes:
+    for texture in list(mat.node_tree.nodes):
+        # Remove the old inferred mask from saved materials as well as imports.
+        if texture.get('hwek_hw1_diffuse_alpha_fallback'):
+            for link in texture.outputs['Color'].links:
+                if link.to_socket.name == 'Player_color (xf)':
+                    link.to_socket.default_value = (1.0, 1.0, 1.0, 1.0)
+            mat.node_tree.nodes.remove(texture)
+            continue
         if texture.type != 'TEX_IMAGE':
             continue
         index = int(texture.get('hwek_ugx_slot_index', -1))
